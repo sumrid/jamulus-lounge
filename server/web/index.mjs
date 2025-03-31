@@ -6,9 +6,10 @@ import fs from 'fs'
 import url from 'url'
 import {
   GOJAM_API_PORT,
+  JAMULUS_CLIENT_NAME,
   LOUNGE_ADMIN_PORT,
   LOUNGE_SERVER_PORT,
-} from './env.mjs'
+} from '../env.mjs'
 
 const fastify = Fastify({
   logger: {
@@ -18,7 +19,7 @@ const fastify = Fastify({
   },
 })
 fastify.register(fastifyStatic, {
-  root: url.fileURLToPath(new URL('../public', import.meta.url)),
+  root: url.fileURLToPath(new URL('../../public', import.meta.url)),
 })
 fastify.register(fastifyReplyFrom, {
   base: `http://localhost:${GOJAM_API_PORT}`,
@@ -32,7 +33,7 @@ let lastKey = ''
 
 async function worker() {
   try {
-    const name = `  lobby [${listeners.size}]  `
+    const name = `${JAMULUS_CLIENT_NAME} [${listeners.size}]`
     const instrument = state.recording ? 23 : 24
     const key = [name, instrument].join(':')
     if (key === lastKey) return

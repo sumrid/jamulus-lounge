@@ -6,16 +6,19 @@ import { createWriteStream } from 'fs'
 import http from 'http'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
+import ClipBuffer from './class/clip-buffer.mjs'
+import EventBuffer from './class/event-buffer.mjs'
 import {
+  CLIPPER_DIR,
+  CLIPPER_UPLOAD_KEY,
+  CLIPPER_UPLOAD_NAMESPACE,
+  CLIPPER_UPLOAD_URL,
   GOJAM_API_PORT,
   LOUNGE_ADMIN_PORT,
   LOUNGE_CLIPPER_PORT,
-} from './env.mjs'
+} from '../env.mjs'
 
-const MAX_CLIP_TIME = 600e3
-
-const canUpload =
-  !!process.env.CLIPPER_UPLOAD_URL && !!process.env.CLIPPER_UPLOAD_KEY
+const canUpload = !!CLIPPER_UPLOAD_URL && !!CLIPPER_UPLOAD_KEY
 
 let enabled = false
 
@@ -27,147 +30,6 @@ const fastify = Fastify({
   },
 })
 const logger = fastify.log
-
-class ClipBufferNode {
-  constructor(data, time, timestamp, offset, size) {
-    this.data = data
-
-    /** High performance timer */
-    this.time = time
-
-    /** Date.now() */
-    this.timestamp = timestamp
-
-    this.offset = offset
-    this.size = size
-    this.next = null
-  }
-}
-
-class ClipBuffer {
-  constructor() {
-    this.clear()
-  }
-  clear() {
-    this.head = null
-    this.tail = null
-    this.offset = 0
-  }
-  add(buffer, size = buffer.length) {
-    const time = performance.now()
-    const node = new ClipBufferNode(buffer, time, Date.now(), this.offset, size)
-    if (this.tail) {
-      this.tail.next = node
-    }
-    this.tail = node
-    if (!this.head) {
-      this.head = node
-    }
-    this.prune()
-    this.offset += size
-  }
-  prune() {
-    const cutoff = performance.now() - MAX_CLIP_TIME
-    while (this.head && this.head.time < cutoff) {
-      this.head = this.head.next
-    }
-  }
-  clip() {
-    this.prune()
-    let node = this.head
-    if (!node) return null
-    const cutoff = this.tail.time
-    const size = this.tail.offset - this.head.offset + this.tail.size
-    const timestamp = this.head.timestamp
-    const time = this.head.time
-    fastify.log.info(
-      'Clipping from ' +
-        new Date(timestamp).toISOString() +
-        ' with length ' +
-        Math.round(cutoff - node.time) +
-        'ms',
-    )
-    const iterator = (function* () {
-      let sent = 0
-      while (node && node.time <= cutoff) {
-        yield node
-        sent += node.size
-        node = node.next
-      }
-      fastify.log.info(`Sent ${sent}/${size} bytes of clip`)
-    })()
-    return {
-      size,
-      timestamp,
-      startTime: time,
-      endTime: cutoff,
-      [Symbol.iterator]() {
-        return iterator
-      },
-    }
-  }
-}
-
-class EventBufferNode {
-  constructor(time, timestamp, state, event) {
-    this.time = time
-    this.timestamp = timestamp
-    this.state = state
-    this.event = event
-    this.next = null
-  }
-}
-
-class EventBuffer {
-  constructor() {
-    this.clear()
-  }
-  clear() {
-    this.head = null
-    this.tail = null
-    this.size = 0
-  }
-  add(state, event) {
-    const time = performance.now()
-    const node = new EventBufferNode(time, Date.now(), state, event)
-    if (this.tail) {
-      this.tail.next = node
-    }
-    this.tail = node
-    if (!this.head) {
-      this.head = node
-    }
-    this.prune()
-    this.size++
-  }
-  prune() {
-    const cutoff = performance.now() - MAX_CLIP_TIME
-    while (this.head && this.head.time < cutoff) {
-      this.head = this.head.next
-      this.size--
-    }
-  }
-  slice(startTime, endTime) {
-    let node = this.head
-    if (!node) return null
-    const out = []
-    let initialState
-    while (node && node.time <= endTime) {
-      if (node.time >= startTime) {
-        if (!initialState) {
-          initialState = node.state
-        }
-        out.push({
-          time: node.time,
-          timestamp: node.timestamp,
-          data: node.event,
-        })
-      }
-      node = node.next
-    }
-    return [initialState, out]
-  }
-}
 
 const clipBuffer = new ClipBuffer()
 const eventBuffer = new EventBuffer()
@@ -280,7 +142,7 @@ fastify.get('/', async (request, reply) => {
 async function generateClipArchive() {
   const clip = clipBuffer.clip()
   if (!clip) return null
-  if (!process.env.CLIPPER_DIR) return null
+  if (!CLIPPER_DIR) return null
   const archive = archiver('zip', { store: true })
   const stream = Readable.from(clipToStream(clip), { objectMode: false })
   archive.append(stream, { name: 'audio.mp3' })
@@ -306,10 +168,7 @@ async function generateClipArchive() {
       .replace(/:/g, '-')
       .split('.')[0] +
     '.zip'
-  await pipeline(
-    archive,
-    createWriteStream(process.env.CLIPPER_DIR + '/' + filename),
-  )
+  await pipeline(archive, createWriteStream(CLIPPER_DIR + '/' + filename))
   return filename
 }
 
@@ -317,8 +176,8 @@ async function generateAndUploadClipFiles() {
   const clip = clipBuffer.clip()
   if (!clip) return null
 
-  const uploadUrl = process.env.CLIPPER_UPLOAD_URL
-  const uploadKey = process.env.CLIPPER_UPLOAD_KEY
+  const uploadUrl = CLIPPER_UPLOAD_URL
+  const uploadKey = CLIPPER_UPLOAD_KEY
   const stream = Readable.from(clipToStream(clip), { objectMode: false })
 
   const [initialState, events] = eventBuffer.slice(clip.startTime, clip.endTime)
@@ -335,7 +194,7 @@ async function generateAndUploadClipFiles() {
     .map((event) => JSON.stringify(event))
     .join('\n')
 
-  const clipNamespace = process.env.CLIPPER_UPLOAD_NAMESPACE || 'clips'
+  const clipNamespace = CLIPPER_UPLOAD_NAMESPACE
   const base =
     `${clipNamespace}/` +
     new Date(Date.now() - 60e3 * new Date().getTimezoneOffset())
