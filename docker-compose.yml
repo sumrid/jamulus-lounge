@@ -24,11 +24,11 @@ services:
 
   # audio recording server
   clipper:
-    image: node:20-alpine
+    image: oven/bun
     working_dir: /app/server
     init: true
     network_mode: host
-    command: node clipper/index.mjs
+    command: bun clipper/index.mjs
     restart: always
     volumes:
       - ./server:/app/server
