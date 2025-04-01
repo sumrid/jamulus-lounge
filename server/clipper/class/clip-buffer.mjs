@@ -1,3 +1,4 @@
+import logger from "../../utils/logger.mts"
 const MAX_CLIP_TIME = 600e3
 
 export class ClipBufferNode {
@@ -52,7 +53,7 @@ export default class ClipBuffer {
     const size = this.tail.offset - this.head.offset + this.tail.size
     const timestamp = this.head.timestamp
     const time = this.head.time
-    fastify.log.info(
+    logger.info(
       'Clipping from ' +
         new Date(timestamp).toISOString() +
         ' with length ' +
@@ -66,7 +67,7 @@ export default class ClipBuffer {
         sent += node.size
         node = node.next
       }
-      fastify.log.info(`Sent ${sent}/${size} bytes of clip`)
+      logger.info(`Sent ${sent}/${size} bytes of clip`)
     })()
     return {
       size,

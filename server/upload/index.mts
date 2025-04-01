@@ -1,19 +1,24 @@
-import Fastify from 'fastify'
 import multipart from '@fastify/multipart'
+import Fastify from 'fastify'
 import * as Minio from 'minio'
 import {
+  CLIPPER_UPLOAD_KEY,
+  STORAGE_AK,
   STORAGE_BUCKET,
   STORAGE_ENDPOINT,
   STORAGE_PUBLIC_URL,
+  STORAGE_REGION,
+  STORAGE_SK,
   UPLOAD_SERVER_PORT,
 } from '../env.mjs'
+import logger from '../utils/logger.mjs'
 
 const minioClient = new Minio.Client({
   endPoint: STORAGE_ENDPOINT,
   useSSL: true,
-  accessKey: process.env.STORAGE_AK,
-  secretKey: process.env.STORAGE_SK,
-  region: process.env.STORAGE_REGION,
+  accessKey: STORAGE_AK,
+  secretKey: STORAGE_SK,
+  region: STORAGE_REGION,
 })
 
 const fastify = Fastify({ logger: true })
@@ -27,16 +32,21 @@ fastify.register(async function multipartContext(child) {
 
   child.put('/upload', async function (req, reply) {
     const authHeader = req.headers.authorization
-    const uploadKey = process.env.UPLOAD_KEY
-    if (authHeader !== `Bearer ${uploadKey}`) {
+    if (authHeader !== `Bearer ${CLIPPER_UPLOAD_KEY}`) {
       reply.status(403)
       return { error: 'invalid key' }
     }
     const data = await req.file()
     const key = req.query.path
-    const url = process.env.STORAGE_PUBLIC_URL + '/' + key
+    const url = STORAGE_PUBLIC_URL + '/' + key
     const metaData = { 'Content-Type': data.mimetype }
-    await minioClient.putObject(STORAGE_BUCKET, key, data.file, metaData)
+    await minioClient.putObject(
+      STORAGE_BUCKET,
+      key,
+      data.file,
+      undefined,
+      metaData,
+    )
     return { url }
   })
 })
@@ -49,8 +59,7 @@ fastify.register(async function rawContext(child) {
 
   fastify.put('/upload-raw', async function (req, reply) {
     const authHeader = req.headers.authorization
-    const uploadKey = process.env.UPLOAD_KEY
-    if (authHeader !== `Bearer ${uploadKey}`) {
+    if (authHeader !== `Bearer ${CLIPPER_UPLOAD_KEY}`) {
       reply.status(403)
       return { error: 'invalid key' }
     }
@@ -67,5 +76,5 @@ fastify.register(async function rawContext(child) {
 
 fastify.listen({ port: UPLOAD_SERVER_PORT, host: '0.0.0.0' }, (err) => {
   if (err) throw err
-  console.log(`server listening on ${fastify.server.address().port}`)
+  logger.info(`server listening on ${fastify.server.address().port}`)
 })

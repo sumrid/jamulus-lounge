@@ -16,4 +16,7 @@ export const TAVILY_API_KEY = process.env.TAVILY_API_KEY
 export const STORAGE_ENDPOINT = process.env.STORAGE_ENDPOINT || 'localhost'
 export const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'jamulus'
 export const STORAGE_PUBLIC_URL = process.env.STORAGE_PUBLIC_URL
+export const STORAGE_AK = process.env.STORAGE_AK
+export const STORAGE_SK = process.env.STORAGE_SK
+export const STORAGE_REGION = process.env.STORAGE_REGION
 export const UPLOAD_SERVER_PORT = +process.env.UPLOAD_SERVER_PORT || 10847

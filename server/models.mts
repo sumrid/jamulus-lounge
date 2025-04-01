@@ -28,6 +28,9 @@ export enum Commands {
   AI = '/ai',
   CHORD = '/chord',
   WEB = '/web',
+  CLIPPER_ON = '/on',
+  CLIPPER_OFF = '/off',
+  CLIPPER_CLIP = '/clip',
 }
 
 export interface TavilySearchResult {
