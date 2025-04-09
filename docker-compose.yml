@@ -26,11 +26,11 @@ services:
 
   # audio recording server
   clipper:
-    image: oven/bun
+    image: node:20-alpine
     working_dir: /app/server
     init: true
     network_mode: host
-    command: bun clipper/index.mjs
+    command: npx tsx clipper/index.mjs
     restart: always
     depends_on:
       - server
