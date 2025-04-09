@@ -1,7 +1,13 @@
 const MAX_CLIP_TIME = 600e3
 
 export class EventBufferNode {
-  constructor(time, timestamp, state, event) {
+  time: number
+  timestamp: number
+  state: any
+  event: any
+  next: EventBufferNode | null
+
+  constructor(time: number, timestamp: number, state: any, event: any) {
     this.time = time
     this.timestamp = timestamp
     this.state = state
@@ -10,16 +16,28 @@ export class EventBufferNode {
   }
 }
 
+interface EventData {
+  time: number
+  timestamp: number
+  data: any
+}
+
 export default class EventBuffer {
+  head: EventBufferNode | null
+  tail: EventBufferNode | null
+  size: number
+
   constructor() {
     this.clear()
   }
-  clear() {
+
+  clear(): void {
     this.head = null
     this.tail = null
     this.size = 0
   }
-  add(state, event) {
+
+  add(state: any, event: any): void {
     const time = performance.now()
     const node = new EventBufferNode(time, Date.now(), state, event)
     if (this.tail) {
@@ -32,18 +50,25 @@ export default class EventBuffer {
     this.prune()
     this.size++
   }
-  prune() {
+
+  prune(): void {
     const cutoff = performance.now() - MAX_CLIP_TIME
     while (this.head && this.head.time < cutoff) {
+      const oldNode = this.head
       this.head = this.head.next
       this.size--
+
+      oldNode.next = null
+      oldNode.event = null
+      oldNode.state = null
     }
   }
-  slice(startTime, endTime) {
+
+  slice(startTime: number, endTime: number): [any, EventData[]] | null {
     let node = this.head
     if (!node) return null
-    const out = []
-    let initialState
+    const out: EventData[] = []
+    let initialState: any
     while (node && node.time <= endTime) {
       if (node.time >= startTime) {
         if (!initialState) {

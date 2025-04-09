@@ -1,16 +1,24 @@
-import logger from "../../utils/logger.mts"
+import logger from '../../utils/logger.mts'
 const MAX_CLIP_TIME = 600e3
 
 export class ClipBufferNode {
-  constructor(data, time, timestamp, offset, size) {
+  data: Buffer | null
+  time: number
+  timestamp: number
+  offset: number
+  size: number
+  next: ClipBufferNode | null
+
+  constructor(
+    data: Buffer,
+    time: number,
+    timestamp: number,
+    offset: number,
+    size: number,
+  ) {
     this.data = data
-
-    /** High performance timer */
     this.time = time
-
-    /** Date.now() */
     this.timestamp = timestamp
-
     this.offset = offset
     this.size = size
     this.next = null
@@ -18,15 +26,21 @@ export class ClipBufferNode {
 }
 
 export default class ClipBuffer {
+  private head: ClipBufferNode | null
+  private tail: ClipBufferNode | null
+  public offset: number
+
   constructor() {
     this.clear()
   }
-  clear() {
+
+  clear(): void {
     this.head = null
     this.tail = null
     this.offset = 0
   }
-  add(buffer, size = buffer.length) {
+
+  add(buffer: Buffer, size: number = buffer.length): void {
     const time = performance.now()
     const node = new ClipBufferNode(buffer, time, Date.now(), this.offset, size)
     if (this.tail) {
@@ -39,20 +53,33 @@ export default class ClipBuffer {
     this.prune()
     this.offset += size
   }
-  prune() {
+
+  prune(): void {
     const cutoff = performance.now() - MAX_CLIP_TIME
     while (this.head && this.head.time < cutoff) {
+      const oldNode = this.head
       this.head = this.head.next
+
+      // free memory
+      oldNode.next = null
+      oldNode.data = null
     }
   }
-  clip() {
+
+  clip(): {
+    size: number
+    timestamp: number
+    startTime: number
+    endTime: number
+    [Symbol.iterator](): Generator<ClipBufferNode, void, unknown>
+  } | null {
     this.prune()
     let node = this.head
     if (!node) return null
-    const cutoff = this.tail.time
-    const size = this.tail.offset - this.head.offset + this.tail.size
-    const timestamp = this.head.timestamp
-    const time = this.head.time
+    const cutoff = this.tail!.time
+    const size = this.tail!.offset - node.offset + this.tail!.size
+    const timestamp = node.timestamp
+    const time = node.time
     logger.info(
       'Clipping from ' +
         new Date(timestamp).toISOString() +
