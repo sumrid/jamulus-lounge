@@ -6,8 +6,6 @@ import { createWriteStream } from 'fs'
 import http from 'http'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
-import ClipBuffer from './class/clip-buffer.mjs'
-import EventBuffer from './class/event-buffer.mjs'
 import {
   CLIPPER_DIR,
   CLIPPER_UPLOAD_KEY,
@@ -17,6 +15,8 @@ import {
   LOUNGE_ADMIN_PORT,
   LOUNGE_CLIPPER_PORT,
 } from '../env.mjs'
+import ClipBuffer from './class/clip-buffer.mts'
+import EventBuffer from './class/event-buffer.mts'
 
 const canUpload = !!CLIPPER_UPLOAD_URL && !!CLIPPER_UPLOAD_KEY
 
