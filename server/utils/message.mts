@@ -1,23 +1,24 @@
-import { Message } from '../models.mts'
+import { type Message } from '../models.mts'
 
 export function extract(message: string): Message {
   const userRegex = message.match(/<b>(.*)<\/b>/)
   const textRegex = message.match(/<\/font>\s+(.*)/)
 
-  let user = userRegex ? userRegex[1].trim() : 'user'
-  let text = textRegex ? textRegex[1].trim() : ''
+  let user = getMatche(userRegex, 1, 'user')
+  user = user.replace(/\[\d*\]/g, '').trim()
+  let text = getMatche(textRegex, 1, '')
   let command = ''
 
   const subUser = text.match(/\[(.*)\]\s+(.*)/)
   if (subUser) {
-    user = subUser[1].trim()
-    text = subUser[2]
+    user = getMatche(subUser, 1, 'user')
+    text = getMatche(subUser, 2, '')
   }
 
   const commandRegex = text.match(/^(\/[a-z]*)\s(.*)/)
   if (commandRegex) {
-    command = commandRegex[1].trim()
-    text = commandRegex[2].trim()
+    command = getMatche(commandRegex, 1, '')
+    text = getMatche(commandRegex, 2, '')
   }
 
   return {
@@ -25,4 +26,11 @@ export function extract(message: string): Message {
     text,
     command,
   }
+}
+
+function getMatche(s: RegExpMatchArray | null, index: number, defaultValue: string): string {
+  if (s && s[index]) {
+    return s[index].trim()
+  }
+  return defaultValue
 }

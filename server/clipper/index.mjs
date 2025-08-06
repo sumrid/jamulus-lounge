@@ -17,6 +17,7 @@ import {
 } from '../env.mjs'
 import ClipBuffer from './class/clip-buffer.mts'
 import EventBuffer from './class/event-buffer.mts'
+import GoJamClient from '../client/gojam-client.mts'
 
 const canUpload = !!CLIPPER_UPLOAD_URL && !!CLIPPER_UPLOAD_KEY
 
@@ -30,7 +31,7 @@ const fastify = Fastify({
   },
 })
 const logger = fastify.log
-
+const gojamClient = GoJamClient.getInstance()
 const clipBuffer = new ClipBuffer()
 const eventBuffer = new EventBuffer()
 
@@ -105,19 +106,23 @@ eventSource.addEventListener('message', (event) => {
         generateClipMessage()
       } else if (message.match(/>\s+\/on\s*$/)) {
         if (enable()) {
-          sendChat(
-            'clipper is now active. type "/clip" to save the previous 10 minute. type "/off" to deactivate.',
-          ).catch((e) => {
-            fastify.log.error({ err: e }, 'Error sending chat message')
-          })
+          gojamClient
+            .sendJamulusChat(
+              'clipper is now active. type "/clip" to save the previous 10 minute. type "/off" to deactivate.',
+            )
+            .catch((e) => {
+              fastify.log.error({ err: e }, 'Error sending chat message')
+            })
         }
       } else if (message.match(/>\s+\/off\s*$/)) {
         if (disable()) {
-          sendChat(
-            'clipper is now deactivated. type "/on" to turn it back on.',
-          ).catch((e) => {
-            fastify.log.error({ err: e }, 'Error sending chat message')
-          })
+          gojamClient
+            .sendJamulusChat(
+              'clipper is now deactivated. type "/on" to turn it back on.',
+            )
+            .catch((e) => {
+              fastify.log.error({ err: e }, 'Error sending chat message')
+            })
         }
       }
     }
@@ -242,27 +247,33 @@ let lastClipMessage = 0
 async function generateClipMessage() {
   try {
     if (!enabled) {
-      await sendChat('clipper is not active. type "/on" to activate.')
+      await gojamClient.sendJamulusChat(
+        'clipper is not active. type "/on" to activate.',
+      )
       return
     }
     if (Date.now() - lastClipMessage < 10e3) {
       fastify.log.info('clip message rate limit')
-      await sendChat('sorry, please wait 10 seconds between clips.')
+      await gojamClient.sendJamulusChat(
+        'sorry, please wait 10 seconds between clips.',
+      )
       return
     }
     lastClipMessage = Date.now()
-    await sendChat('generating clip... please wait!')
+    await gojamClient.sendJamulusChat('generating clip... please wait!')
     const clip = await generateAndUploadClipFiles()
     if (!clip) {
       fastify.log.info('no clip available')
-      await sendChat('sorry, no clip data available.')
+      await gojamClient.sendJamulusChat('sorry, no clip data available.')
       return
     }
-    await sendChat(clip.replayUrl)
+    await gojamClient.sendJamulusChat(clip.replayUrl)
   } catch (e) {
-    await sendChat('sorry, there is an error.').catch((e) => {
-      fastify.log.error({ err: e }, 'Error sending chat message')
-    })
+    await gojamClient
+      .sendJamulusChat('sorry, there is an error.')
+      .catch((e) => {
+        fastify.log.error({ err: e }, 'Error sending chat message')
+      })
     fastify.log.error({ err: e }, 'Error generating clip')
   }
 }
@@ -307,6 +318,3 @@ fastify.get('/clip', async (request, reply) => {
 })
 
 fastify.listen({ port: LOUNGE_CLIPPER_PORT, host: '127.0.0.1' })
-async function sendChat(message) {
-  await axios.post(`http://localhost:${GOJAM_API_PORT}/chat`, { message })
-}

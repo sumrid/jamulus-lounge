@@ -58,7 +58,7 @@ describe('extract', () => {
 
   it('should handle cases where user is malformed', () => {
     const result = extract(
-      '<font color="darkorchid">(07:55:01 PM) <b>   testing  [0]   </b></font> this should not match /ai this should not match',
+      '<font color="darkorchid">(07:55:01 PM) <b>   testing  [10]   </b></font> this should not match /ai this should not match',
     )
     expect(result).toEqual({
       user: 'testing',
@@ -67,6 +67,3 @@ describe('extract', () => {
     })
   })
 })
-
-// <font color="red">(02:12:54 PM) <b>No Name</b></font> /on
-// <font color="mediumblue">(02:12:57 PM) <b>lobby [1]</b></font> [09] /on

@@ -1,15 +1,16 @@
 import EventSource from 'eventsource'
 import { GOJAM_API_PORT } from '../env.mjs'
-import { Commands, EventData, Message } from '../models.mts'
+import { Commands, type EventData, type Message } from '../models.mts'
 import logger from '../utils/logger.mts'
 import { extract } from '../utils/message.mts'
 import { chat } from './ai.mts'
-import { sendJamulusChat } from './gojam-client.mts'
+import GoJamClient from '../client/gojam-client.mts'
 import { search } from './tavily.mts'
 
 let previuosClients: number = 99
 let lastWelcomeMessage: Date = new Date()
 
+const gojamClient = GoJamClient.getInstance()
 const eventSource = new EventSource(`http://localhost:${GOJAM_API_PORT}/events`)
 
 /*
@@ -53,7 +54,7 @@ eventSource.addEventListener('message', (event: MessageEvent<string>) => {
 async function handleOnChatMessage(message: Message) {
   try {
     const response = await chat(message.user, message.text)
-    await sendJamulusChat(response)
+    await gojamClient.sendJamulusChat(response)
   } catch (error) {
     logger.error('Error sending chat message:', error)
   }
@@ -64,7 +65,7 @@ async function handleFindChord(message: Message) {
     const response = await search(`${message.text} คอร์ด`)
     const urls = new Set<string>(response.map((i) => i.url))
     const chatMessage = `${message.text}: ${Array.from(urls).join(' , ')}`
-    await sendJamulusChat(chatMessage)
+    await gojamClient.sendJamulusChat(chatMessage)
   } catch (error) {
     logger.error('Error sending chat message:', error)
   }
@@ -72,17 +73,16 @@ async function handleFindChord(message: Message) {
 
 async function handleWebSearch(message: Message) {
   try {
-    await sendJamulusChat('give me a sec...')
+    await gojamClient.sendJamulusChat('give me a sec...')
     const searchRes = await search(message.text)
-    const prompt = `i did web search for "${
-      message.text
-    }" can you summarize these results for me
+    const prompt = `i did web search for "${message.text
+      }" can you summarize these results for me
     ====
     ${JSON.stringify(searchRes, null, ' ')}
     ====
     `
     const chatMessage = await chat(message.user, prompt)
-    await sendJamulusChat(chatMessage)
+    await gojamClient.sendJamulusChat(chatMessage)
   } catch (error) {
     logger.error('Error sending chat message:', error)
   }
@@ -100,7 +100,7 @@ async function handleOnClient() {
       includeHistory: false,
       saveHistory: false,
     })
-    await sendJamulusChat(response)
+    await gojamClient.sendJamulusChat(response)
   } catch (error) {
     logger.error('Error sending chat message:', error)
   }

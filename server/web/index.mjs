@@ -33,7 +33,7 @@ let lastKey = ''
 
 async function worker() {
   try {
-    const name = `${JAMULUS_CLIENT_NAME} [${listeners.size}]`
+    const name = `  ${JAMULUS_CLIENT_NAME} [${listeners.size}]  `
     const instrument = state.recording ? 23 : 24
     const key = [name, instrument].join(':')
     if (key === lastKey) return
