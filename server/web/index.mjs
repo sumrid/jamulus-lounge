@@ -1,6 +1,5 @@
 import fastifyReplyFrom from '@fastify/reply-from'
 import fastifyStatic from '@fastify/static'
-import axios from 'axios'
 import Fastify from 'fastify'
 import fs from 'fs'
 import url from 'url'
@@ -10,6 +9,7 @@ import {
   LOUNGE_ADMIN_PORT,
   LOUNGE_SERVER_PORT,
 } from '../env.mjs'
+import GoJamClient from '../client/gojam-client.mts'
 
 const fastify = Fastify({
   logger: {
@@ -28,7 +28,7 @@ fastify.register(fastifyReplyFrom, {
 const state = {}
 const listeners = new Map()
 const logger = fastify.log
-const client = axios.create({ baseURL: `http://localhost:${GOJAM_API_PORT}` })
+const client = GoJamClient.getInstance()
 let lastKey = ''
 
 async function worker() {
@@ -37,11 +37,7 @@ async function worker() {
     const instrument = state.recording ? 23 : 24
     const key = [name, instrument].join(':')
     if (key === lastKey) return
-    await client.patch('/channel-info', {
-      name,
-      skillLevel: 3,
-      instrument,
-    })
+    await client.updateChannelInfo(name, 3, instrument)
     logger.info(`Set client name to "${name}"`)
     lastKey = name
   } catch (err) {
@@ -105,7 +101,7 @@ fastify.post('/chat', async (request, reply) => {
   const text = request.body.text
   const name = user.name
   request.log.info(`Send chat: [${name}] ${text}`)
-  await client.post('/chat', { message: `[${name}] ${text}` })
+  await client.sendJamulusChat(`[${name}] ${text}`)
   return { ok: true }
 })
 

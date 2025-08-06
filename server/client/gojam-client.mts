@@ -2,16 +2,18 @@ import axios from 'axios'
 import { GOJAM_API_PORT } from '../env.mjs'
 
 class GoJamClient {
-  private static instance: GoJamClient;
-  private client = axios.create({ baseURL: `http://localhost:${GOJAM_API_PORT}` });
+  private static instance: GoJamClient
+  private client = axios.create({
+    baseURL: `http://localhost:${GOJAM_API_PORT}`,
+  })
 
   private constructor() {}
 
   public static getInstance(): GoJamClient {
     if (!GoJamClient.instance) {
-      GoJamClient.instance = new GoJamClient();
+      GoJamClient.instance = new GoJamClient()
     }
-    return GoJamClient.instance;
+    return GoJamClient.instance
   }
 
   /**
@@ -20,16 +22,20 @@ class GoJamClient {
    * @param {string} message - The chat message to send.
    */
   public async sendJamulusChat(message: string) {
-    await this.client.post('/chat', { message });
+    await this.client.post('/chat', { message })
   }
 
-  public async updateChannelInfo(name: string) {
+  public async updateChannelInfo(
+    name: string,
+    skillLevel?: number,
+    instrument?: number,
+  ) {
     await this.client.patch('/channel-info', {
       name,
-      // skillLevel: 3,
-      // instrument,
-    });
+      skillLevel,
+      instrument,
+    })
   }
 }
 
-export default GoJamClient;
+export default GoJamClient

@@ -12,7 +12,7 @@ services:
     working_dir: /app/server
     init: true
     network_mode: host
-    command: node web/index.mjs
+    command: npx tsx web/index.mjs
     restart: always
     depends_on:
       - gojam
