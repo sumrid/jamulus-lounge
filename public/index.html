@@ -11,26 +11,73 @@
       integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD"
       crossorigin="anonymous"
     />
+    <link href="liquid-glass.css" rel="stylesheet" />
   </head>
   <body>
+    <div class="lg-bg" aria-hidden="true"></div>
+    <!-- Edge lensing for .lg-glass. Chromium only; other browsers keep the plain blur. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <filter
+        id="lg-lens"
+        x="0"
+        y="0"
+        width="1"
+        height="1"
+        primitiveUnits="objectBoundingBox"
+        color-interpolation-filters="sRGB"
+      >
+        <feImage
+          x="0"
+          y="0"
+          width="1"
+          height="1"
+          preserveAspectRatio="none"
+          href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='g'%3E%3Cstop offset='0' stop-color='%23f08000'/%3E%3Cstop offset='.04' stop-color='%23808000'/%3E%3Cstop offset='.96' stop-color='%23808000'/%3E%3Cstop offset='1' stop-color='%23108000'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E"
+          result="x"
+        />
+        <feImage
+          x="0"
+          y="0"
+          width="1"
+          height="1"
+          preserveAspectRatio="none"
+          href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' preserveAspectRatio='none'%3E%3ClinearGradient id='g' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%2380f000'/%3E%3Cstop offset='.2' stop-color='%23808000'/%3E%3Cstop offset='.8' stop-color='%23808000'/%3E%3Cstop offset='1' stop-color='%23801000'/%3E%3C/linearGradient%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E"
+          result="y"
+        />
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="x"
+          scale="0.06"
+          xChannelSelector="R"
+          yChannelSelector="G"
+          result="lensed-x"
+        />
+        <feDisplacementMap
+          in="lensed-x"
+          in2="y"
+          scale="0.03"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
+      </filter>
+    </svg>
     <div class="container py-3">
-      <h1 class="mb-4" id="app-title">jamulus-lounge</h1>
+      <header
+        class="lg-glass lg-bar sticky-top d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4"
+      >
+        <h1 class="h5 m-0" id="app-title">jamulus-lounge</h1>
+        <div id="player"></div>
+      </header>
       <div class="d-flex flex-wrap gap-4">
         <div style="flex: 1 1 320px">
           <div class="card mb-4">
-            <div class="card-header">Listening controls</div>
-            <div class="card-body">
-              <div id="player"></div>
-            </div>
-          </div>
-          <div class="card mb-4">
-            <div class="card-header">Active jammers</div>
+            <div class="card-header">Active Jammers</div>
             <div class="card-body">
               <div id="members"></div>
             </div>
           </div>
           <div class="card mb-4">
-            <div class="card-header">Connected listeners</div>
+            <div class="card-header">Connected Listeners</div>
             <div class="card-body">
               <div id="listeners"></div>
             </div>

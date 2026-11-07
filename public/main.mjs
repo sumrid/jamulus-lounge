@@ -108,11 +108,12 @@ function handleData(data) {
             <div class="text-start" style="flex: 1 0">${c.name.padEnd(16)}</div>
             <div
               style="height: 24px; background: hsl(var(--hue), 20%, 20%);"
-              class="overflow-hidden rounded d-flex"
+              class="overflow-hidden rounded-pill d-flex"
             >
               <div
-                style="width: ${percentage}%; background: hsl(var(--hue), 80%, 80%);"
-                class="rounded"
+                style="width: 100%; transform: translateX(${percentage -
+                100}%); background: hsl(var(--hue), 80%, 80%);"
+                class="rounded-pill lg-meter-fill"
               ></div>
             </div>
           </div>`
@@ -316,8 +317,8 @@ function Player() {
                   Listen
                 </button>`}
             ${listening && html`<${Listener} />`}
-            <button class="btn btn-danger" onClick=${createRecorder}>
-              Record
+            <button class="btn btn-secondary" onClick=${createRecorder}>
+              <span class="text-danger" aria-hidden="true">●</span> Record
             </button>
           `}
     </div>
@@ -331,7 +332,10 @@ function Player() {
       the page and try again later.
     </div>`}
     ${recorders.length > 0 &&
-    html`<div class="d-flex flex-column gap-2 mt-3">
+    html`<div
+      class="d-flex flex-column gap-2 mt-2"
+      style="max-height: 40vh; overflow-y: auto;"
+    >
       ${recorders.map((rec) => {
         return html`<${Recorder}
           recorder=${rec}
@@ -635,10 +639,10 @@ function Chat() {
   return html`<div class="card mb-4">
     <div class="card-header">Chat</div>
     <div
-      class="card-body"
+      class="card-body lg-chat-scroll"
       ref=${scrollableRef}
       onScroll=${handleScroll}
-      style="overflow-y: auto; overflow-x: hidden; height: max(256px, 100vh - 256px);"
+      style="overflow-y: auto; overflow-x: hidden; height: max(256px, 100vh - 170px);"
     >
       ${welcomeHtml
         ? html`<div>
@@ -662,7 +666,7 @@ function Chat() {
         ]
       })}
     </div>
-    <div class="card-footer text-center">
+    <div class="lg-glass lg-composer text-center">
       ${currentSid && currentName
         ? html`<form class="d-flex gap-2" onSubmit=${submit}>
             <strong class="align-self-center">${currentName}</strong>
@@ -672,7 +676,7 @@ function Chat() {
               name="chatText"
               id="chatText"
             />
-            <input type="submit" class="btn btn-outline-primary" value="Send" />
+            <input type="submit" class="btn btn-primary" value="Send" />
           </form>`
         : html`<em class="text-muted">Listen in to chat</em>`}
     </div>
@@ -706,6 +710,19 @@ if (document.querySelector('#player')) {
   render(html`<${Player} />`, document.querySelector('#player'))
   render(html`<${Chat} />`, document.querySelector('#chat'))
   render(html`<${Listeners} />`, document.querySelector('#listeners'))
+}
+
+const bg = document.querySelector('.lg-bg')
+if (bg) {
+  addEventListener(
+    'pointermove',
+    (e) => {
+      const x = (e.clientX / innerWidth - 0.5) * 8
+      const y = (e.clientY / innerHeight - 0.5) * 8
+      bg.style.translate = `${x}vmax ${y}vmax`
+    },
+    { passive: true },
+  )
 }
 
 fetch(server + '/config').then(async (response) => {
